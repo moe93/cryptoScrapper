@@ -2,8 +2,10 @@
 *
 * A script to scrape cryptocurrency market cap and ranking on daily basis
 *
-* VERSION: 1.1
+* VERSION: 1.1.1
 *   - ADDED   : Store logfile under a folder for later data analysis
+*   - ADDED   : Create a config.ini file for COI (will implement data analysis
+*               and pay close attention to COI found in config.ini in later update)
 *
 * AUTHORED  : MOHAMMAD ODEH
 * DATE      : Dec. 26th, 2017 Year of Our Lord
@@ -17,13 +19,41 @@ from    bs4                 import  BeautifulSoup   as  bs
 from    datetime            import  datetime
 import  requests, re, os, platform, getpass
 
-
 # ************************************************************************
-# =======================> DEFINE GLOBAL VARIABLES <=====================*
+# ===========================> READ CONFIG FILE <========================*
 # ************************************************************************
 
-##overwrite = 0                                   # Overwrite or nah!
-##mode = ''                                       # What mode to open logfile under
+sampleConfig =  ( "# Write down ticker of coins of special interest.\n"
+                  "# Lines starting with a hashtag (#) will be ignored.\n"
+                  "\n"
+                  "# Ethereum\n"
+                  "ETH\n"
+                  "\n"
+                  "# Ripple\n"
+                  "XRP\n"
+                  "\n"
+                  "# Golem\n"
+                  "GNT")
+
+COI = []                                        # Start an empty list for Coins of Interest (COI)
+
+configFile = 'config.ini'                       # Define name of config file
+
+if( os.path.isfile(configFile) == False ):      # Check whether config.ini exists or not
+    print( "config.ini DNE. Creating sample..." ) ,
+    with open( configFile, 'w' ) as f:          # Open file for writing
+        f.write( sampleConfig )                 # Write sample config.ini file
+    print( "Success!" )
+
+# Extract COI from config.ini file
+with open( configFile, 'r' ) as f:              # Open file for reading
+    for line in f:                              # Read line-by-line
+        if not line.strip(): continue           # Skip empty lines
+        else:
+            if( line[0] == '#' ): continue      # Skip comments
+            else: COI.append( line.strip() )    # Append COI to list
+
+print( COI )
 
 # ************************************************************************
 # =====================> PREPARE LOGGING ENVIRONMENT <===================*
@@ -106,21 +136,3 @@ with open( logFile, mode ) as f:
                 
             print( stripped_content )           # Print content
             f.write( "%s\n" %stripped_content )
-
-### Print to screen
-##j = 0                                       # Counter to print headers
-##for row in rows:
-##    cells = row.findChildren('td')
-##    for i in range( 0, len(cells) ):
-##        cell_content = cells[i].getText()
-##        stripped_content = re.sub( '\s+', ' ',
-##                                   cell_content).strip()
-##        
-##        if( j != 7 ):                       # 8th header is useless, no need to print it
-##            print( headers[j] + ' :') ,
-##            j += 1                          # Increment j index by 1
-##            
-##        else:
-##            j = 0                           # if j is equal to 7, reset counter & do NOT print
-##            
-##        print( stripped_content )           # Print content
