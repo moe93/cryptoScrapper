@@ -2,10 +2,11 @@
 *
 * A script to scrape cryptocurrency market cap and ranking on daily basis
 *
-* VERSION: 1.1.1
+* VERSION: 1.1.4
 *   - ADDED   : Store logfile under a folder for later data analysis
 *   - ADDED   : Create a config.ini file for COI (will implement data analysis
 *               and pay close attention to COI found in config.ini in later update)
+*   - ADDED   : Populate lists with yesterday's and today's entries for later comparison
 *
 * AUTHORED  : MOHAMMAD ODEH
 * DATE      : Dec. 26th, 2017 Year of Our Lord
@@ -16,7 +17,7 @@
 
 # Import modules
 from    bs4                 import  BeautifulSoup   as  bs
-from    datetime            import  datetime
+from    datetime            import  datetime, timedelta
 import  requests, re, os, platform, getpass
 
 # ************************************************************************
@@ -61,7 +62,7 @@ print( COI )
 
 # Store logfile under today's date dd-mm-yyy
 now = datetime.now()
-logFile = "[LOG]_%d-%d-%d.txt" %( now.day, now.month, now.year )
+logFile = "%d-%d-%d.txt" %( now.day, now.month, now.year )
 
 # Prepare log file and folder
 if( platform.system() == 'Linux' ):
@@ -76,7 +77,6 @@ if( platform.system() == 'Linux' ):
     else: pass
 
     # Logfile check
-    mode = 'w+'
     if( os.path.isfile(dst + "/" + logFile) ):  # Check whether a logfile with today's date exists
         print( "Log exists. Overwrite?" )       # ...
         print( "1. Yes" )                       # Prompt to overwrite
@@ -84,7 +84,7 @@ if( platform.system() == 'Linux' ):
         
         overwrite = raw_input( ">\ " )          # Store choice
 
-        if( overwrite != '1' ): quit()          # If No, quit
+        if( overwrite != ('1' or 'y') ): quit() # If No, quit
         else: print( "OVERWRITTING!!!" )        # If Yes, overwrite!
         
 
@@ -115,24 +115,86 @@ headers = [x.getText() for x in rows[0].findChildren('th')]
 # ************************************************************************
 # =====================> PRINT & STORE SCRAPPED DATA  <==================*
 # ************************************************************************
+##
+### Write to file / Print to screen
+##with open( logFile, 'w+' ) as f:
+##    j = 0                                       # Counter to print headers
+##    for row in rows:
+##        cells = row.findChildren('td')
+##        for i in range( 0, len(cells) ):
+##            cell_content = cells[i].getText()
+##            stripped_content = re.sub( '\s+', ' ',
+##                                       cell_content).strip()
+##            
+##            if( j != 7 ):                       # 8th header is useless, no need to print it
+##                print( headers[j] + ' :') ,
+##                f.write( "%s :" %headers[j] )
+##                j += 1                          # Increment j index by 1
+##                
+##            else:
+##                j = 0                           # if j is equal to 7, reset counter & do NOT print
+##                
+##            print( stripped_content )           # Print content
+##            f.write( "%s\n" %stripped_content )
 
-# Write to file / Print to screen
-with open( logFile, mode ) as f:
-    j = 0                                       # Counter to print headers
-    for row in rows:
-        cells = row.findChildren('td')
-        for i in range( 0, len(cells) ):
-            cell_content = cells[i].getText()
-            stripped_content = re.sub( '\s+', ' ',
-                                       cell_content).strip()
+# ************************************************************************
+# =============================> ANALYZE DATA  <=========================*
+# ************************************************************************
+today = []                                      # List to store today's data
+ayer = []                                       # List to store yesterday's data
+update = []                                     # List to store analyzed data
+
+# Open today's logfile
+with open( logFile, 'r' ) as f:                 # Open file for reading
+    for line in f:                              # Read line-by-line
+        
+        if( line[0] == '#' ):                   # Store coin's ranking
+            delimeter = " :"
             
-            if( j != 7 ):                       # 8th header is useless, no need to print it
-                print( headers[j] + ' :') ,
-                f.write( "%s :" %headers[j] )
-                j += 1                          # Increment j index by 1
-                
-            else:
-                j = 0                           # if j is equal to 7, reset counter & do NOT print
-                
-            print( stripped_content )           # Print content
-            f.write( "%s\n" %stripped_content )
+            startPos = line.find( delimeter )   # Find delimeter position
+            today.append( line[startPos+2:-1] ) # Append to list
+
+        elif( line[0] == 'N' ):                 # Store coin's name
+            delimeter = " :"
+            
+            startPos = line.find( delimeter )   # Find delimeter position
+            today.append( line[startPos+2:-1] ) # Append to list
+
+        elif( line[0] == 'M' ):                 # Store coin's market cap
+            delimeter = " :$"
+            
+            startPos = line.find( delimeter )   # Find delimeter position
+            today.append( line[startPos+3:-1] ) # Append to list
+            #int( today[2].replace( ',', '' ) )  # Convert to integer
+     
+# Open yesterday's logfile
+now = now - timedelta(1)
+logFile = "%d-%d-%d.txt" %( now.day, now.month, now.year )
+with open( logFile, 'r' ) as f:                 # Open file for reading
+    for line in f:                              # Read line-by-line
+        
+        if( line[0] == '#' ):                   # Store coin's ranking
+            delimeter = " :"
+            
+            startPos = line.find( delimeter )   # Find delimeter position
+            ayer.append( line[startPos+2:-1] )  # Append to list
+
+        elif( line[0] == 'N' ):                 # Store coin's name
+            delimeter = " :"
+            
+            startPos = line.find( delimeter )   # Find delimeter position
+            ayer.append( line[startPos+2:-1] ) # Append to list
+
+        elif( line[0] == 'M' ):                 # Store coin's market cap
+            delimeter = " :$"
+            
+            startPos = line.find( delimeter )   # Find delimeter position
+            ayer.append( line[startPos+3:-1] )  # Append to list
+            #int( ayer[2].replace( ',', '' ) )  # Convert to integer
+
+# Find difference accrued in one day
+# i == Ranking
+# j == Name
+# k == Market Cap
+for j in range(1, len(today), 3):
+    print( ayer[j] )
